@@ -1,16 +1,40 @@
 const express = require('express');
 const app = express();
 const cors = require('cors');
+const bodyParser = require('body-parser');
 const port = 4000;
+const pollRoute = require('./routes/poll.route');
+const userRoute = require('./routes/user.route');
 
-app.use(cors());
+const db = require("./models");
 
-app.get('/', (req, res) => {
-  res.json({
-    title: 'What is your favorite programming language?',
-    description: 'Choose one option.',
-    options: ['Ruby', 'PHP', 'Java', 'Rust'],
-  });
+app.use(bodyParser.json());
+
+app.use(
+  bodyParser.urlencoded({
+    extended: true,
+  })
+);
+
+app.use(cors({
+  origin: "http://localhost:3000"
+}));
+
+
+db.sequelize.sync({ force: true }).then(() => {
+  console.log("Drop and re-sync db.");
+});
+
+app.use('/', pollRoute);
+app.use('/user', userRoute);
+
+/* Error handler middleware */
+app.use((err, req, res, next) => {
+  const statusCode = err.statusCode || 500;
+  console.error(err.message, err.stack);
+  res.status(statusCode).json({'message': err.message});
+  
+  return;
 });
 
 app.listen(port, () => {
