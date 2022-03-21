@@ -11,25 +11,27 @@ async function create(req, res, next) {
       const username = req.body.username;
       const password = cryptPassword(req.body.password);
 
-      User.findOne({ where: { username } }).then( user => {
-        if(user === null) {
-          User.create({ username, password })
-            .then(data => {
-              res.status(200).send({
-                message: 'Registered successfully',
-                created: true
-              });
-            })
-            .catch(err => {
-              res.status(500).send({
-                message:
-                  err.message || 'Some error occurred while creating the user.'
-              });
-          });
-        } else {
-          res.status(200).send({message: 'This user is already in use'});
-        }
-      });
+      const findUser = await User.findOne({ where: { username } });
+      
+      if(findUser === null) {
+        User.create({ username, password })
+          .then(user => {
+
+            authenticate(req, res, user, {
+              message: 'Registered successfully',
+              created: true
+            });
+
+          })
+          .catch(err => {
+            res.status(500).send({
+              message:
+                err.message || 'Some error occurred while creating the user.'
+            });
+        });
+      } else {
+        res.status(200).send({message: 'This user is already in use'});
+      }
 
     } catch (err) {
       console.error(`Error while creating programming language`, err.message);
@@ -41,29 +43,34 @@ async function login(req, res, next) {
   const username = req.body.username;
   const password = cryptPassword(req.body.password);
 
-  User.findOne({ where: { username, password } }).then( user => {
+  const user = await User.findOne({ where: { username, password } })
   
-      const jwt = require('jsonwebtoken');
-      
-      if( user !== null ) {
-        jwt.sign({
-          id: user.id,
-          username: user.username,
-          password: user.password,
-        }, process.env.SECRET_KEY, (err, token) => {
-            if (err) {
-                res.status(500).json({ mensagem: 'JWT error' });
+  if( user !== null ) {
+    authenticate(req, res, user);
+  } else {
+    res.status(401).json({ message: 'Username or password incorrect' });
+  }
 
-                return;
-            }
-            res.set('x-access-token', token);
-            res.status(201).json({'x-access-token': token});
-        });
+}
+
+function authenticate(req, res, user, items) {
+  const jwt = require('jsonwebtoken');
+  jwt.sign({
+    id: user.id,
+    username: user.username,
+    password: user.password,
+  }, process.env.SECRET_KEY, { expiresIn: '7d' }, (err, token) => {
+      if (err) {
+          res.status(500).json({ mensagem: 'JWT error' });
+
+          return;
       }
-    }).catch(err => {
-      res.status(401);
-      res.end();
-    })
+      res.set('x-access-token', token);
+      res.status(201).json({
+        'x-access-token': token,
+        ...items
+      });
+  });
 }
 
 module.exports = {
