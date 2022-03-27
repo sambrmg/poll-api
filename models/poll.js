@@ -1,10 +1,5 @@
 module.exports = (sequelize, Sequelize) => {
     const Poll = sequelize.define("Poll", {
-        id: {
-            type: Sequelize.INTEGER,
-            allowNull: false,
-            primaryKey: true
-        },
         title: {
             type: Sequelize.STRING,
         },
@@ -12,8 +7,17 @@ module.exports = (sequelize, Sequelize) => {
             type: Sequelize.STRING
         },
         code: {
-            type: Sequelize.STRING
-        }
+            type: Sequelize.STRING,
+            allowNull: false,
+            unique: true
+        },
+        userId: {
+            type: Sequelize.INTEGER,
+            references: {
+               model: 'Users',
+               key: 'id', 
+            }
+         }
     });
     return Poll;
 };
