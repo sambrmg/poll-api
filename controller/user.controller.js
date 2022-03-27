@@ -22,20 +22,15 @@ async function create(req, res, next) {
               created: true
             });
 
-          })
-          .catch(err => {
-            res.status(500).send({
-              message:
-                err.message || 'Some error occurred while creating the user.'
-            });
-        });
+          });
       } else {
         res.status(200).send({message: 'This user is already in use'});
       }
-
     } catch (err) {
-      console.error(`Error while creating programming language`, err.message);
-      next(err);
+      res.status(500).send({
+        message:
+          err.message || 'Some error occurred while creating the user.'
+      });
     }
 }
 
@@ -46,7 +41,7 @@ async function login(req, res, next) {
   const user = await User.findOne({ where: { username, password } })
   
   if( user !== null ) {
-    authenticate(req, res, user);
+    authenticate(req, res, user, { username });
   } else {
     res.status(401).json({ message: 'Username or password incorrect' });
   }

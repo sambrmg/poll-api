@@ -1,10 +1,14 @@
-const { Poll, PollOption } = require('../models');
+const { sequelize, Poll, PollOption } = require('../models');
 
 async function create(req, res, next) {
+  
+  let transaction;
+
   try {
+    transaction = await sequelize.transaction();
+
     const title = req.body.title.trim();
     const description = req.body.description.trim();
-
     if (title === '') {
       return res.status(422).send({message: 'Title is required'});
     }
@@ -18,27 +22,43 @@ async function create(req, res, next) {
     if (optionsFilled.length < 2) {
       return res.status(422).send({message: 'Please add two or more options'});
     }
-
-    const generateUniqueId = () => `_${Date.now().toString(36)}${Math.floor(Number.MAX_SAFE_INTEGER * Math.random()).toString(36)}`;
+    const generateUniqueId = () => 
+      `${Date.now().toString(36)}${Math.floor(Number.MAX_SAFE_INTEGER * Math.random()).toString(36)}`;
     
-    Poll.create({
+    const poll = await Poll.create({
       title,
       description,
       code: generateUniqueId(),
       userId: req.userInfo.id
-    }).then(poll => {
-      console.log(poll)
-      res.status(200).send({message: 'Poll created'});
-    }).catch(err => {
-        res.status(500).send({
-          message:
-            err.message || 'Some error occurred while creating the user.'
-        });
+    }, { transaction });
+
+    const pollOptions = optionsFilled.map(item => {
+      return {
+        title : item.value,
+        answer: 0,
+        idPoll: poll.id
+      }
+    });
+
+    await PollOption.bulkCreate(pollOptions, { transaction })
+
+    await transaction.commit(); 
+
+    res.status(200).send({
+      message: 'Poll created',
+      pollCode: poll.code
     });
 
   } catch (err) {
-    console.error(`Error while creating programming language`, err.message);
-    next(err);
+    
+    if(transaction) {
+      await transaction.rollback();
+    }
+
+    res.status(500).send({
+      message:
+        err.message || 'Some error occurred while creating the user.'
+    });
   }
 }
 
