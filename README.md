@@ -1,5 +1,3 @@
-# Docker Compose Nodejs and MySQL example
-
 ## Run the System
 
 We can easily run the whole with only a single command:
@@ -8,4 +6,12 @@ We can easily run the whole with only a single command:
 docker-compose up
 ```
 
-Docker will pull the MySQL and Node.js images (if our machine does not have it before).
+Docker will pull the MySQL.
+
+## Run Node API
+
+```bash
+npm install
+
+npm start
+```
