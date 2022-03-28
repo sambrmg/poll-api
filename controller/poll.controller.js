@@ -95,7 +95,31 @@ async function get(req, res, next) {
     
 }
 
+async function vote(req, res, next) {
+  try {
+      const id = req.body.id;
+      const voted = req.body.voted;
+
+
+      const pollOptions = await PollOption.findOne( { where: { id } });
+      
+      if (voted) {
+        pollOptions.decrement('answer');
+      } else {
+        pollOptions.increment('answer');
+      }
+
+      res.status(200).end();
+
+    } catch (err) {
+      console.error(`Error while creating programming language`, err.message);
+      next(err);
+    }
+  
+}
+
 module.exports = {
     create,
     get,
+    vote,
 };
