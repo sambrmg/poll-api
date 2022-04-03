@@ -1,4 +1,5 @@
 const { sequelize, Poll, PollOption } = require('../models');
+const env = require('dotenv').config();
 
 async function create(req, res, next) {
   
@@ -64,27 +65,49 @@ async function create(req, res, next) {
 
 async function get(req, res, next) {
     try {
-        const code = req.params.id;
+        const jwt = req.headers["authorization"];
         
+        const jwtService = require("jsonwebtoken");
+
+        const code = req.params.id;
 
         const poll = await Poll.findOne({ where: { code } });
 
         const pollOptions = await PollOption.findAll( { where: { idPoll: poll.id } });
+        
+        let isLoggedIn = false;
 
-        const options = pollOptions.map(option => {
-          return {
-            id: option.get().id,
-            title: option.get().title,
+        jwtService.verify(jwt, process.env.SECRET_KEY, (err, userInfo) => {
+          if(!err && userInfo.id === poll.get().userId) {
+            isLoggedIn = true;
           }
         });
 
-        if(poll !== null) {
-          res.json({
-              title: poll.title,
-              description: poll.description,
-              options: options,
-        });
+        const options = pollOptions.map(option => {
+          let resJson = {
+            id: option.get().id,
+            title: option.get().title,
+          }
+          
+          if(isLoggedIn) {
+            resJson.answer = option.get().answer;
+          }
 
+          return resJson
+        });
+        
+        let pollJson = {
+          title: poll.title,
+          description: poll.description,
+          options: options,
+        };
+
+        if(isLoggedIn) {
+          pollJson.sum = pollOptions.reduce((acc, option) => acc + option.get().answer, 0)
+        }
+
+        if(poll !== null) {
+          res.json(pollJson);
         } else {
           res.status(404).end();
         }
@@ -118,8 +141,29 @@ async function vote(req, res, next) {
   
 }
 
+async function getAllPollsByUser(req, res, next) {
+  try {
+
+    const polls = await Poll.findAll( 
+      { 
+        attributes: ['code', 'title'],
+        where: { userId: req.userInfo.id } 
+      });
+
+    if(polls !== null) {
+      res.json(polls);
+    } else {
+      res.status(404).end();
+    }
+    
+  } catch (err) {
+    console.error(`Error while creating programming language`, err.message);
+    next(err);
+  }
+}
 module.exports = {
     create,
     get,
     vote,
+    getAllPollsByUser
 };

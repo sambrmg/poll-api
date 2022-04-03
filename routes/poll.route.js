@@ -4,7 +4,10 @@ const router = express.Router();
 const poll = require('../controller/poll.controller');
 
 router.get('/:id', poll.get);
-router.post('/', authValidateJWT,  poll.create);
 router.put('/', poll.vote);
+
+// with auth
+router.get('/my-polls', authValidateJWT, poll.getAllPollsByUser);
+router.post('/', authValidateJWT,  poll.create);
 
 module.exports = router;
