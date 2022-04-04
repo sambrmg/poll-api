@@ -3,7 +3,7 @@ const authValidateJWT = require('../auth');
 const router = express.Router();
 const poll = require('../controller/poll.controller');
 
-router.get('/:id', poll.get);
+router.get('/p/:id', poll.get);
 router.put('/', poll.vote);
 
 // with auth
