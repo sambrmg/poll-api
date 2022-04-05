@@ -24,7 +24,7 @@ async function create(req, res, next) {
 
           });
       } else {
-        res.status(200).send({message: 'This user is already in use'});
+        res.status(409).send({message: 'This user is already in use'});
       }
     } catch (err) {
       res.status(500).send({
